@@ -36,3 +36,13 @@ Short | Long | Arguments | Description
 -e | exclude | Collectors (string list) | The collectors which should be excluded (default none).
 -T | timeout | Number of seconds (int) | The number of seconds between collections (i.e. the update interval). Default is 5 (seconds) but you can modify it to your needs.
 -v | verbose | None | Specify multiple times to set log level (default is -vv=INFO, use -vvv for DEBUG).
+
+## Collectors
+
+All collectors are enabled by default.
+
+Name | Description
+-----|-------------
+datapath | Exposes datapath stats from the `ovs-appctl dpctl/show -s` command.
+pmd_threads | Exposes dpdk pmd threads stats from the `ovs-appctl dpif-netdev/pmd-stats-show`
+command.
