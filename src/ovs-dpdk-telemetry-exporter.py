@@ -17,18 +17,20 @@ from ovs import stream
 logging.basicConfig()
 _log = logging.getLogger('OvsDpdkTelemetryExporter')
 
-OVS_VSWITCHD_PID_FILE = '/var/run/openvswitch/ovs-vswitchd.pid'
-OVS_VSWITCHD_SOCKET_TEMPLATE = 'unix:/var/run/openvswitch/ovs-vswitchd.$pid.ctl'
+OVS_VSWITCHD_PID_FILE_TEMPLATE = '$rundir/ovs-vswitchd.pid'
+OVS_VSWITCHD_SOCKET_TEMPLATE = 'unix:$rundir/ovs-vswitchd.$pid.ctl'
 
 
 class OvsRpc:
 
-    def __init__(self):
-        f = open(OVS_VSWITCHD_PID_FILE)
+    def __init__(self, rundir):
+        ovs_pid_file = Template(OVS_VSWITCHD_PID_FILE_TEMPLATE).safe_substitute(rundir=rundir)
+
+        f = open(ovs_pid_file)
         pid = f.readline().strip()
         f.close()
 
-        sock = Template(OVS_VSWITCHD_SOCKET_TEMPLATE).substitute(pid=pid)
+        sock = Template(OVS_VSWITCHD_SOCKET_TEMPLATE).safe_substitute(rundir=rundir, pid=pid)
 
         error, stream_ = stream.Stream.open_block(stream.Stream.open(sock))
         if error:
@@ -274,6 +276,7 @@ class OvsDpdkTelemetryExporter:
         self.port = int(args.port)
         self.timeout = int(args.timeout)
         self.exclude = args.exclude
+        self.rundir = args.rundir
 
         self.verbose = args.verbose
 
@@ -287,7 +290,7 @@ class OvsDpdkTelemetryExporter:
             _log.setLevel(logging.CRITICAL)
 
         try:
-            ovs_rpc = OvsRpc()
+            ovs_rpc = OvsRpc(self.rundir)
             signal.signal(signal.SIGINT, ovs_rpc.close)
             signal.signal(signal.SIGTERM, ovs_rpc.close)
 
@@ -584,7 +587,7 @@ def parser():
     parser.add_argument(
         '-p',
         '--port',
-        dest="port",
+        dest='port',
         default=8000,
         help='OvsDpdkTelemetryExporter port (default: 8000)')
     parser.add_argument(
@@ -605,6 +608,12 @@ def parser():
         action='append',
         default=[],
         help='Exclude collectors (usage: -e datapath -e pmd_threads)')
+    parser.add_argument(
+        '-d',
+        '--rundir',
+        action='store',
+        default='/var/run/openvswitch',
+        help='The OVS directory used for pidfiles (default: /var/run/openvswitch)')
     return parser.parse_args()
 
 
