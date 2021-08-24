@@ -1,26 +1,72 @@
 #!/usr/bin/env python3
 
-import os
+import signal
+import sys
 import time
 import schedule
+import traceback
 import logging
 import argparse
 import re
 from prometheus_client import start_http_server, Counter, Gauge
 from pprint import pformat
+from string import Template
+from ovs import jsonrpc
+from ovs import stream
 
 logging.basicConfig()
 _log = logging.getLogger('OvsDpdkTelemetryExporter')
 
+OVS_VSWITCHD_PID_FILE = '/var/run/openvswitch/ovs-vswitchd.pid'
+OVS_VSWITCHD_SOCKET_TEMPLATE = 'unix:/var/run/openvswitch/ovs-vswitchd.$pid.ctl'
+
+
+class OvsRpc:
+
+    def __init__(self):
+        f = open(OVS_VSWITCHD_PID_FILE)
+        pid = f.readline().strip()
+        f.close()
+
+        sock = Template(OVS_VSWITCHD_SOCKET_TEMPLATE).substitute(pid=pid)
+
+        error, stream_ = stream.Stream.open_block(stream.Stream.open(sock))
+        if error:
+            raise Exception(error)
+
+        self.rpc = jsonrpc.Connection(stream=stream_)
+
+    def exec(self, cmd, args):
+        request = jsonrpc.Message.create_request(cmd, args)
+
+        error, reply = self.rpc.transact_block(request=request)
+
+        if error:
+            raise Exception(error)
+        elif reply.error:
+            raise Exception(reply.error)
+
+        _log.debug(reply.result)
+        return reply.result
+
+    def close(self, signum, frame):
+        _log.info('Terminating...')
+        self.rpc.close()
+        sys.exit(0)
+
 
 class DatapathStaticstics:
 
+    def __init__(self, ovs_rpc) -> None:
+        self.ovs_rpc = ovs_rpc
+
     def _read_statistics(self):
-        stream = os.popen('ovs-appctl dpctl/show -s')
-        return stream.readlines()
+        res = self.ovs_rpc.exec('dpctl/show', ['-s'])
+        return res.split('\n')[:-1]
 
     def get_statistics(self):
         output = self._read_statistics()
+        _log.debug(output)
         dps = []
         curr_dp = -1
 
@@ -146,13 +192,16 @@ class DatapathStaticstics:
 
 class PmdStatistics:
 
+    def __init__(self, ovs_rpc) -> None:
+        self.ovs_rpc = ovs_rpc
+
     def _read_statistics(self):
-        stream = os.popen('ovs-appctl dpif-netdev/pmd-stats-show')
-        return stream.readlines()
+        res = self.ovs_rpc.exec('dpif-netdev/pmd-stats-show', [])
+        return res.split('\n')[:-1]
 
     def get_statistics(self):
         output = self._read_statistics()
-
+        _log.debug(output)
         threads = []
 
         i = 0
@@ -237,8 +286,19 @@ class OvsDpdkTelemetryExporter:
         else:
             _log.setLevel(logging.CRITICAL)
 
+        try:
+            ovs_rpc = OvsRpc()
+            signal.signal(signal.SIGINT, ovs_rpc.close)
+            signal.signal(signal.SIGTERM, ovs_rpc.close)
+
+        except Exception as e:
+            _log.critical(e)
+            _log.debug(
+                ''.join(traceback.format_exception(None, e, e.__traceback__)))
+            sys.exit(1)
+
         if 'datapath' not in self.exclude:
-            self.dps = DatapathStaticstics()
+            self.dps = DatapathStaticstics(ovs_rpc=ovs_rpc)
 
             self.datapath_flows = Gauge(
                 'ovs_dpdk_telemetry_datapath_flows', '', ['datapath'])
@@ -314,7 +374,7 @@ class OvsDpdkTelemetryExporter:
                                                       'datapath', 'port_id', 'interface', 'interface_type'])
 
         if 'pmd_threads' not in self.exclude:
-            self.pmd = PmdStatistics()
+            self.pmd = PmdStatistics(ovs_rpc=ovs_rpc)
 
             self.pmd_threads_packets_received = Counter(
                 'ovs_dpdk_telemetry_pmd_threads_packets_received', '', ['thread_type', 'numa_id', 'core_id'])
@@ -497,26 +557,36 @@ class OvsDpdkTelemetryExporter:
     def getStats(self):
 
         if 'datapath' not in self.exclude:
-            dps = self.dps.get_statistics()
-            _log.debug(pformat(dps))
+            try:
+                dps = self.dps.get_statistics()
+                _log.debug(pformat(dps))
 
-            self._refreshDpMetrics(dps)
+                self._refreshDpMetrics(dps)
+            except Exception as e:
+                _log.error(e)
+                _log.debug(
+                    ''.join(traceback.format_exception(None, e, e.__traceback__)))
 
         if 'pmd_threads' not in self.exclude:
-            pmd = self.pmd.get_statistics()
-            _log.debug(pformat(pmd))
+            try:
+                pmd = self.pmd.get_statistics()
+                _log.debug(pformat(pmd))
 
-            self._refreshPmdMetrics(pmd)
+                self._refreshPmdMetrics(pmd)
+            except Exception as e:
+                _log.error(e)
+                _log.debug(
+                    ''.join(traceback.format_exception(None, e, e.__traceback__)))
 
 
 def parser():
-    parser = argparse.ArgumentParser(prog='DPDKTelemetryExporter')
+    parser = argparse.ArgumentParser(prog='OvsDpdkTelemetryExporter')
     parser.add_argument(
         '-p',
         '--port',
         dest="port",
         default=8000,
-        help='DPDKTelemetryExporter port (default: 8000)')
+        help='OvsDpdkTelemetryExporter port (default: 8000)')
     parser.add_argument(
         '-T',
         '--timeout',
