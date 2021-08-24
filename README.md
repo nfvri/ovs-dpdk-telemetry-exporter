@@ -19,12 +19,14 @@ usage: DPDKTelemetryExporter [-h] [-p PORT] [-T TIMEOUT] [-v] [-e EXCLUDE]
 
 optional arguments:
   -h, --help            show this help message and exit
-  -p PORT, --port PORT  DPDKTelemetryExporter port (default: 8000)
+  -p PORT, --port PORT  OvsDpdkTelemetryExporter port (default: 8000)
   -T TIMEOUT, --timeout TIMEOUT
                         The update interval in seconds (default: 5)
   -v, --verbose         Set output verbosity (default: -vv = INFO)
   -e EXCLUDE, --exclude EXCLUDE
                         Exclude collectors (usage: -e datapath -e pmd_threads)
+  -d RUNDIR, --rundir RUNDIR
+                        The OVS directory used for pidfiles (default: /var/run/openvswitch)
 ```
 
 ## Command-line arguments
@@ -34,6 +36,7 @@ Short | Long | Arguments | Description
 -h | help | None | Show usage and exit.
 -p | port | Port number (int) | The port number on which to expose metrics (default 8000).
 -e | exclude | Collectors (string list) | The collectors which should be excluded (default none).
+-d | rundir | OVS rundir (string) | The OVS directory used for pidfiles (default: /var/run/openvswitch)
 -T | timeout | Number of seconds (int) | The number of seconds between collections (i.e. the update interval). Default is 5 (seconds) but you can modify it to your needs.
 -v | verbose | None | Specify multiple times to set log level (default is -vv=INFO, use -vvv for DEBUG).
 
@@ -44,5 +47,4 @@ All collectors are enabled by default.
 Name | Description
 -----|-------------
 datapath | Exposes datapath stats from the `ovs-appctl dpctl/show -s` command.
-pmd_threads | Exposes dpdk pmd threads stats from the `ovs-appctl dpif-netdev/pmd-stats-show`
-command.
+pmd_threads | Exposes dpdk pmd threads stats from the `ovs-appctl dpif-netdev/pmd-stats-show` command.
