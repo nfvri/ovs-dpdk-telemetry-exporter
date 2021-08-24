@@ -1,11 +1,26 @@
 # ovs-dpdk-telemetry-exporter
-A OVS-DPDK telemetry exporter
+
+An OVS-DPDK telemetry exporter
+
+## Run in docker
+
+The recommended way when running locally. Remember to mount the OVS run dir as a volume and add
+extra options to the command line, e.g.:
+
+```sh
+$ docker run --rm \
+	--name exporter \
+	--publish 8000:8000 \
+	--mount type=bind,source=/var/run/openvswitch,target=/var/run/openvswitch/ \
+	nfvri/ovs-dpdk-telemetry-exporter \
+	/opt/ovs-dpdk-telemetry-exporter/ovs-dpdk-telemetry-exporter.py -vvv -T 5
+```
 
 ## Install and run locally
 
 Please prefer to run from the docker image. If local installation is absolutely necessary, you can
 install the exporter with:
-```
+```sh
 $ sudo apt-get update && sudo apt-get install -y python3 python3-pip
 
 $ pip3 install -r requirements.txt
@@ -46,5 +61,5 @@ All collectors are enabled by default.
 
 Name | Description
 -----|-------------
-datapath | Exposes datapath stats from the `ovs-appctl dpctl/show -s` command.
-pmd_threads | Exposes dpdk pmd threads stats from the `ovs-appctl dpif-netdev/pmd-stats-show` command.
+datapath | Exposes datapath stats from the `dpctl/show -s` command.
+pmd_threads | Exposes dpdk pmd threads stats from the `dpif-netdev/pmd-stats-show` command.
