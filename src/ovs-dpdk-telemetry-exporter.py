@@ -407,8 +407,10 @@ class OvsDpdkTelemetryExporter:
                 'ovs_dpdk_telemetry_pmd_threads_processing_cycles', '', ['thread_type', 'numa_id', 'core_id'])
             self.pmd_threads_processing_cycles_percentage = Gauge(
                 'ovs_dpdk_telemetry_pmd_threads_processing_cycles_percentage', '', ['thread_type', 'numa_id', 'core_id'])
-            self.pmd_threads_avg_processing_cycles_per_packet = Gauge(
+            self.pmd_threads_avg_cycles_per_packet = Gauge(
                 'ovs_dpdk_telemetry_pmd_threads_avg_cycles_per_packet', '', ['thread_type', 'numa_id', 'core_id'])
+            self.pmd_threads_avg_processing_cycles_per_packet = Gauge(
+                'ovs_dpdk_telemetry_pmd_threads_avg_processing_cycles_per_packet', '', ['thread_type', 'numa_id', 'core_id'])
 
     def _refreshDpMetrics(self, dps):
         for dp in dps:
@@ -545,6 +547,8 @@ class OvsDpdkTelemetryExporter:
                     thread_type=thread['type'], numa_id=thread['numa_id'], core_id=thread['core_id'])._value.set(float(thread['processing_cycles']))
                 self.pmd_threads_processing_cycles_percentage.labels(
                     thread_type=thread['type'], numa_id=thread['numa_id'], core_id=thread['core_id'])._value.set(float(thread['processing_cycles_percentage']))
+                self.pmd_threads_avg_cycles_per_packet.labels(
+                    thread_type=thread['type'], numa_id=thread['numa_id'], core_id=thread['core_id'])._value.set(float(thread['avg_cycles_per_packet']))
                 self.pmd_threads_avg_processing_cycles_per_packet.labels(
                     thread_type=thread['type'], numa_id=thread['numa_id'], core_id=thread['core_id'])._value.set(float(thread['avg_processing_cycles_per_packet']))
 
