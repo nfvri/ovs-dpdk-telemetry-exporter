@@ -19,6 +19,83 @@ $ docker run --rm \
 	/opt/ovs-dpdk-telemetry-exporter/ovs-dpdk-telemetry-exporter.py -vvv -T 5
 ```
 
+## Run as Kubernetes pod sidecar
+
+To run as a sidecar, add the exporter container to your Deployment/Statefulset/Daemonset definition
+with mount access to the OVS run directory (usually `/var/run/openvswitch`) as follows:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+...
+spec:
+  template:
+    spec:
+      containers:
+      - name: telemetry-exporter
+        imagePullPolicy: Always
+        image: nfvri/ovs-dpdk-telemetry-exporter:0.1
+        command: ["/opt/ovs-dpdk-telemetry-exporter/ovs-dpdk-telemetry-exporter.py"]
+        args: ["-vvv"]
+        volumeMounts:
+           - mountPath: /var/run/openvswitch/
+             name: ovsrun-volume
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "1000m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+        ports:
+          - containerPort: 8000
+...
+```
+
+Then assuming you have a Prometheus-operator deployment, use a `Service` and `ServiceMonitor` to
+specify a target to the exporter (be careful to match the appropriate labels/namespaces for your
+case):
+
+```yaml
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: ovs-dpdk-deployment-monitor
+  namespace: monitoring
+  labels:
+    app: ovs-dpdk
+    release: k8s-prom
+spec:
+  endpoints:
+  - port: metrics
+    path: /
+    interval: "5s"
+    scrapeTimeout: "5s"
+  namespaceSelector:
+    matchNames:
+      - ovs-dpdk
+  selector:
+    matchLabels:
+      app: ovs-dpdk
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ovs-dpdk-deployment-svc
+  namespace: ovs-dpdk
+  labels:
+    app: ovs-dpdk
+spec:
+  ports:
+  - name: metrics
+    port: 8000
+    protocol: TCP
+  selector:
+    app: ovs-dpdk
+```
+
 ## Install and run locally
 
 Please prefer to run from the docker image. If local installation is absolutely necessary, you can
@@ -66,6 +143,21 @@ Name | Description
 -----|-------------
 datapath | Exposes datapath stats from the `dpctl/show -s` command.
 pmd_threads | Exposes dpdk pmd threads stats from the `dpif-netdev/pmd-stats-show` command.
+
+## Prometheus target
+
+In the example above for Kubernetes pod sidecar run, the Prometheus target is set automatically by
+prometheus-operator. If you have to manually create a target, locate your `prometheus.yml` file and
+add a scrape config for the exporter target, using the proper ip and port where Prometheus can
+contact the exporter:
+
+```yaml
+  - job_name: 'ovs-dpdk-telemetry-exporter'
+    scrape_interval: 5s
+    scrape_timeout: 5s
+    static_configs:
+      - targets: ['192.168.123.1:8000']
+```
 
 ## Grafana dashboard
 
