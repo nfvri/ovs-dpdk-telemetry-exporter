@@ -2,6 +2,9 @@
 
 An OVS-DPDK telemetry exporter
 
+![Grafana OVS Datapath dashboard](./screenshots/grafana-datapath.png?raw=true "Grafana screenshot of OVS Datapath exported metrics from Prometheus")
+![Grafana OVS-DPDK PMD dashboard](./screenshots/grafana-pmd.png?raw=true "Grafana screenshot of OVS-DPDK PMD exported metrics from Prometheus")
+
 ## Run in docker
 
 The recommended way when running locally. Remember to mount the OVS run dir as a volume and add
@@ -30,7 +33,7 @@ $ pip3 install -r requirements.txt
 You can then run it with:
 ```
 $ ovs-dpdk-telemetry-exporter.py -h
-usage: DPDKTelemetryExporter [-h] [-p PORT] [-T TIMEOUT] [-v] [-e EXCLUDE]
+usage: OvsDpdkTelemetryExporter [-h] [-p PORT] [-T TIMEOUT] [-v] [-e EXCLUDE]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -63,3 +66,8 @@ Name | Description
 -----|-------------
 datapath | Exposes datapath stats from the `dpctl/show -s` command.
 pmd_threads | Exposes dpdk pmd threads stats from the `dpif-netdev/pmd-stats-show` command.
+
+## Grafana dashboard
+
+A sample grafana dashboard is provided at `grafana_dashboard.json`.
+
