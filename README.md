@@ -16,7 +16,7 @@ $ docker run --rm \
 	--publish 8000:8000 \
 	--mount type=bind,source=/var/run/openvswitch,target=/var/run/openvswitch/ \
 	nfvri/ovs-dpdk-telemetry-exporter \
-	/opt/ovs-dpdk-telemetry-exporter/ovs-dpdk-telemetry-exporter.py -vvv -T 5
+	ovsDpdkTelemetryExporter -vvv -T 5
 ```
 
 ## Run as Kubernetes pod sidecar
@@ -35,7 +35,7 @@ spec:
       - name: telemetry-exporter
         imagePullPolicy: Always
         image: nfvri/ovs-dpdk-telemetry-exporter:0.1
-        command: ["/opt/ovs-dpdk-telemetry-exporter/ovs-dpdk-telemetry-exporter.py"]
+        command: ["ovsDpdkTelemetryExporter"]
         args: ["-vvv"]
         volumeMounts:
            - mountPath: /var/run/openvswitch/
@@ -103,13 +103,13 @@ install the exporter with:
 ```sh
 $ sudo apt-get update && sudo apt-get install -y python3 python3-pip
 
-$ pip3 install -r requirements.txt
+$ python3 setup.py install
 
 ```
 
 You can then run it with:
 ```
-$ ovs-dpdk-telemetry-exporter.py -h
+$ ovsDpdkTelemetryExporter -h
 usage: OvsDpdkTelemetryExporter [-h] [-p PORT] [-T TIMEOUT] [-v] [-e EXCLUDE]
 
 optional arguments:

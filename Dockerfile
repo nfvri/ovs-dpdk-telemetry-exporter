@@ -10,6 +10,6 @@ COPY ./* /opt/ovs-dpdk-telemetry-exporter/
 
 WORKDIR /opt/ovs-dpdk-telemetry-exporter
 
-RUN pip3 install -r requirements.txt
+RUN python3 setup.py install
 
 CMD ["/bin/bash","-c","while true; do echo debug; sleep 10;done"]
