@@ -114,79 +114,80 @@ class DatapathStaticstics:
                 continue
 
             match = re.search('\(.*\)', output[i])
+            port_details = []
             if match:
                 port_details = match.group(0).strip('()').split(': ')
 
-                rx_output = output[i+1].split()
-                rx_packets = rx_output[1].split(':')[1]
-                rx_errors = rx_output[2].split(':')[1]
-                rx_dropped = rx_output[3].split(':')[1]
-                rx_overruns = rx_output[4].split(':')[1]
-                rx_frame = rx_output[5].split(':')[1]
+            rx_output = output[i+1].split()
+            rx_packets = rx_output[1].split(':')[1]
+            rx_errors = rx_output[2].split(':')[1]
+            rx_dropped = rx_output[3].split(':')[1]
+            rx_overruns = rx_output[4].split(':')[1]
+            rx_frame = rx_output[5].split(':')[1]
 
-                tx_output = output[i+2].split()
-                tx_packets = tx_output[1].split(':')[1]
-                tx_errors = tx_output[2].split(':')[1]
-                tx_dropped = tx_output[3].split(':')[1]
-                tx_aborted = tx_output[4].split(':')[1]
-                tx_carrier = tx_output[5].split(':')[1]
+            tx_output = output[i+2].split()
+            tx_packets = tx_output[1].split(':')[1]
+            tx_errors = tx_output[2].split(':')[1]
+            tx_dropped = tx_output[3].split(':')[1]
+            tx_aborted = tx_output[4].split(':')[1]
+            tx_carrier = tx_output[5].split(':')[1]
 
-                collisions = output[i+3].split(':')[1].strip()
+            collisions = output[i+3].split(':')[1].strip()
 
-                port = {
-                    'id': int(output[i].split()[1].strip(':')),
-                    'interface': output[i].split()[2],
-                    'type': port_details[0],
-                    'rx': {
-                        'packets': -1 if rx_packets == '?' else int(rx_packets),
-                        'errors': -1 if rx_errors == '?' else int(rx_errors),
-                        'dropped': -1 if rx_dropped == '?' else int(rx_dropped),
-                        'overruns': -1 if rx_overruns == '?' else int(rx_overruns),
-                        'frame': -1 if rx_frame == '?' else int(rx_frame),
-                    },
-                    'tx': {
-                        'packets': -1 if tx_packets == '?' else int(tx_packets),
-                        'errors': -1 if tx_errors == '?' else int(tx_errors),
-                        'dropped': -1 if tx_dropped == '?' else int(tx_dropped),
-                        'aborted': -1 if tx_aborted == '?' else int(tx_aborted),
-                        'carrier': -1 if tx_carrier == '?' else int(tx_carrier),
-                    },
-                    'collisions': -1 if collisions == '?' else int(collisions),
-                }
+            port = {
+                'id': int(output[i].split()[1].strip(':')),
+                'interface': output[i].split()[2],
+                'type': '' if len(port_details) == 0 else port_details[0],
+                'rx': {
+                    'packets': -1 if rx_packets == '?' else int(rx_packets),
+                    'errors': -1 if rx_errors == '?' else int(rx_errors),
+                    'dropped': -1 if rx_dropped == '?' else int(rx_dropped),
+                    'overruns': -1 if rx_overruns == '?' else int(rx_overruns),
+                    'frame': -1 if rx_frame == '?' else int(rx_frame),
+                },
+                'tx': {
+                    'packets': -1 if tx_packets == '?' else int(tx_packets),
+                    'errors': -1 if tx_errors == '?' else int(tx_errors),
+                    'dropped': -1 if tx_dropped == '?' else int(tx_dropped),
+                    'aborted': -1 if tx_aborted == '?' else int(tx_aborted),
+                    'carrier': -1 if tx_carrier == '?' else int(tx_carrier),
+                },
+                'collisions': -1 if collisions == '?' else int(collisions),
+            }
 
-                rx_bytes_match = re.search('RX bytes:[0-9]*', output[i+4])
-                if rx_bytes_match:
-                    rx_bytes = int(rx_bytes_match.group(0).split(':')[1])
-                    port['rx']['bytes'] = rx_bytes
+            rx_bytes_match = re.search('RX bytes:[0-9]*', output[i+4])
+            if rx_bytes_match:
+                rx_bytes = int(rx_bytes_match.group(0).split(':')[1])
+                port['rx']['bytes'] = rx_bytes
 
-                tx_bytes_match = re.search('TX bytes:[0-9]*', output[i+4])
-                if tx_bytes_match:
-                    tx_bytes = int(tx_bytes_match.group(0).split(':')[1])
-                    port['tx']['bytes'] = tx_bytes
+            tx_bytes_match = re.search('TX bytes:[0-9]*', output[i+4])
+            if tx_bytes_match:
+                tx_bytes = int(tx_bytes_match.group(0).split(':')[1])
+                port['tx']['bytes'] = tx_bytes
 
-                if len(port_details) > 1:
-                    conf_details = port_details[1].split(', ')
-                    details = {}
-                    for detail in conf_details:
-                        key = detail.split('=')[0]
-                        val = detail.split('=')[1]
+            if len(port_details) > 1:
+                conf_details = port_details[1].split(', ')
+                details = {}
+                for detail in conf_details:
+                    key = detail.split('=')[0]
+                    val = detail.split('=')[1]
 
-                        if val.isnumeric():
-                            details[key] = int(val)
-                            continue
+                    if val.isnumeric():
+                        details[key] = int(val)
+                        continue
 
-                        if val == 'true':
-                            details[key] = True
-                            continue
+                    if val == 'true':
+                        details[key] = True
+                        continue
 
-                        if val == 'false':
-                            details[key] = False
-                            continue
+                    if val == 'false':
+                        details[key] = False
+                        continue
 
-                        details[key] = val
-                    port['details'] = details
+                    details[key] = val
+                port['details'] = details
 
-                dps[curr_dp]['ports'].append(port)
+            dps[curr_dp]['ports'].append(port)
 
             i += 5
         return dps
