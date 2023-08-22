@@ -179,7 +179,7 @@
       },
       "targets": [
         {
-          exemplar": true,
+          "exemplar": true,
           "expr": "rate(ovs_dpdk_telemetry_datapath_port_tx_packets_total[$__rate_interval])",
           "interval": "",
           "legendFormat": "",
