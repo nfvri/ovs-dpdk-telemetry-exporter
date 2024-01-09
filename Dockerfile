@@ -1,4 +1,4 @@
-FROM debian:stable
+FROM debian:bullseye
 
 LABEL Author="Victor Timofei <victor@vtimothy.com>"
 LABEL Vendor="Intracom Telecom S.A."

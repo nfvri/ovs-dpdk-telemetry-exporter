@@ -1,0 +1,35 @@
+FROM debian:bullseye
+
+LABEL Author="Victor Timofei <victor@vtimothy.com>"
+LABEL Vendor="Intracom Telecom S.A."
+LABEL Description="OVS-DPDK Telemetry exporter image"
+
+ARG BUILD_PROXY
+ARG BUILD_NO_PROXY
+
+ENV http_proxy="$BUILD_PROXY"
+ENV https_proxy="$BUILD_PROXY"
+ENV HTTP_PROXY="$BUILD_PROXY"
+ENV HTTPS_PROXY="$BUILD_PROXY"
+RUN echo "Acquire::http::Proxy \"$BUILD_PROXY\";" | tee -a /etc/apt/apt.conf
+RUN echo "Acquire::https::Proxy \"$BUILD_PROXY\";" | tee -a /etc/apt/apt.conf
+RUN echo "no_proxy=$BUILD_NO_PROXY" | tee -a /etc/environment
+
+RUN apt-get update && apt-get install -y python3 python3-pip && apt-get clean
+
+COPY ./* /opt/ovs-dpdk-telemetry-exporter/
+
+WORKDIR /opt/ovs-dpdk-telemetry-exporter
+
+RUN python3 setup.py install
+
+CMD ["/bin/bash","-c","while true; do echo debug; sleep 10;done"]
+
+# unset proxy
+ENV http_proxy=
+ENV https_proxy=
+ENV HTTP_PROXY=
+ENV HTTPS_PROXY=
+ENV no_proxy=
+RUN tac /etc/apt/apt.conf | sed '1,2d' | tac | tee /etc/apt/apt.conf
+RUN tac /etc/environment | sed '1d' | tac | tee /etc/environment
